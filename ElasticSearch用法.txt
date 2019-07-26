@@ -1,0 +1,217 @@
+ElasticSearch介绍：它是一个基于Lucene的搜索服务器。它提供了一个分布式多用户能力的全文搜索引擎,它还可以进行以下工作：
+    分布式实时文件存储,并将每一个字段都编入索引,使其可以被搜索。
+    实时分析的分布式搜索引擎。
+    可以扩展到上百台服务器,处理PB级别的结构化或非结构化数据。
+
+核心概念：
+一个 Elasticsearch 集群可以包含多个索引(数据库),也就是说其中包含了很多类型(表)。这些类型中包含了很多的文档(行),然后每个文档中又包含了很多的字段(列)
+(Elasticsearch的交互,可以使用Java API,也可以直接使用HTTP的Restful API方式,比如我们打算插入一条记录,可以简单发送一个HTTP的请求)
+
+关系型数据库  ==>   数据库  ==>    表    ==>       行       ==>列
+
+Elasticsearch ==>索引(Index)==>类型(type)==>文档(Documents) ==>字段(Fields)
+1.集群
+  ES集群是一个或多个节点的集合,它们共同存储了整个数据集,并提供了联合索引以及可跨所有节点的搜索能力。多节点组成的集群拥
+  有冗余能力,它可以在一个或几个节点出现故障时保证服务的整体可用性。集群靠其独有的名称进行标识,默认名称为"elasticsearch"。
+  节点靠其集群名称来决定加入哪个ES集群,一个节点只能属一个集群。
+
+2.节点
+  一个节点是一个逻辑上独立的服务,可以存储数据,并参与集群的索引和搜索功能, 一个节点也有唯一的名字,集群通过节点名称进行
+  管理和通信.
+
+3.主节点
+  主节点的主要职责是和集群操作相关的内容,如创建或删除索引,跟踪哪些节点是群集的一部分,并决定哪些分片分配给相关的节点。
+  稳定的主节点对集群的健康是非常重要的。虽然主节点也可以协调节点,路由搜索和从客户端新增数据到数据节点,但最好不要使用
+  这些专用的主节点。一个重要的原则是,尽可能做尽量少的工作。
+
+4.数据节点
+  持有数据和倒排索引。
+
+5.客户端节点
+  它既不能保持数据也不能成为主节点,该节点可以响应用户的情况,把相关操作发送到其他节点；客户端节点会将客户端请求路由到集群中
+  合适的分片上。对于读请求来说,协调节点每次会选择不同的分片处理请求,以实现负载均衡。
+
+6.部落节点
+  部落节点可以跨越多个集群,它可以接收每个集群的状态,然后合并成一个全局集群的状态,它可以读写所有节点上的数据。
+
+7.索引
+  ES将数据存储于一个或多个索引中,索引是具有类似特性的文档的集合。类比传统的关系型数据库领域来说,索引相当于SQL中的一个数据库,
+  或者一个数据存储方案(schema)。索引由其名称(必须为全小写字符)进行标识,并通过引用此名称完成文档的创建、搜索、更新及删除操作。
+  一个ES集群中可以按需创建任意数目的索引。
+
+8.文档类型
+  类型是索引内部的逻辑分区(category/partition),然而其意义完全取决于用户需求。因此,一个索引内部可定义一个或多个类型(type)。
+  一般来说,类型就是为那些拥有相同的域的文档做的预定义。例如,在索引中,可以定义一个用于存储用户数据的类型,一个存储日志数据的类型,
+  以及一个存储评论数据的类型。类比传统的关系型数据库领域来说,类型相当于“表”。
+
+9.文档
+  文档是Lucene索引和搜索的原子单位,它是包含了一个或多个域的容器,基于JSON格式进行表示。文档由一个或多个域组成,每个域拥有一个名字及一个或多个值,
+  有多个值的域通常称为“多值域”。每个文档可以存储不同的域集,但同一类型下的文档至应该有某种程度上的相似之处。相当于数据库的“记录”
+
+10.Mapping
+  相当于数据库中的schema,用来约束字段的类型,不过 Elasticsearch 的 mapping 可以自动根据数据创建ES中,所有的文档在存储之前都要首先进行分析。
+  用户可根据需要定义如何将文本分割成token、哪些token应该被过滤掉,以及哪些文本需要进行额外处理等等。分片(shard) ：ES的“分片(shard)”机制可
+  将一个索引内部的数据分布地存储于多个节点,它通过将一个索引切分为多个底层物理的Lucene索引完成索引数据的分割存储功能,这每一个物理的Lucene
+  索引称为一个分片(shard)。Shard有两种类型：primary和replica,即主shard及副本shard。
+
+
+ElasticSearch字段数据类型
+    核心数据类型
+        字符型：string(ElasticSearch 5.0之后，除去了字符串string类型，增加了：text(全文搜索)、keyword(关键字搜索)),默认同时满足keyword与text类型，如果做聚合或者排序，可在字段添加keyword，做关键词搜索（long.keyword）
+        数字型：long(64位存储、integer:32位存储、short:16位存储、byte:8位存储、double:64位双精度存储、float:32位单精度存储)
+        日期型：data(日期格式的字符串,比如"2018-01-13"或"2018-01-13 12:10:30"、long类型的毫秒数(milliseconds-since-the-epoch,epoch就是指UNIX诞生的UTC时间1970年1月1日0时0分0秒)、integer的秒数(seconds-since-the-epoch)
+        布尔型：boolean(逻辑类型(布尔类型)可以接受true/false/"true"/"false"值)
+        范围类型：range(integer_range:整型范围类型、float_range:单精度浮点范围类型、long_range:长整型范围类型、double_range:双精度范围类型、date_range:时间范围类型、ip_range:IP范围类型)
+        二进制型：binary(二进制字段是指用base64来表示索引中存储的二进制数据,可用来存储二进制形式的数据,例如图像。默认情况下,该类型的字段只存储不索引。二进制类型只支持index_name属性。)
+ 
+    复杂数据类型
+        数组类型(array)：数组类型不需要专门指定数组元素的type，例如：字符型数组:["one","two"]、整型数组：[1,2]、数组型数组:[1,[2,3]]等价于[1,2,3]
+        对象类型(object)：object用于单个JSON对象
+        嵌套类型(nested)：nested用于JSON数组
+
+    地理类型
+        地理坐标类型(geo_point)：用于经纬度坐标
+        地理地图(geo_shape)：用于类似于多边形的复杂形状
+ 
+    特殊类型
+        IP类型(ip)：用于IPv4地址
+        范围类型(completion)：提供自动补全建议
+        令牌计数类型(token_count)：用于统计做了标记的字段的index数目，该值会一直增加，不会因为过滤条件而减少
+        附件类型(attachment)：采用mapper-attachments插件，可支持attachments索引，例如Microsoft Office格式，Open Document格式，ePub, HTML等。
+        抽取类(percolator)
+
+Logstash在windows下的安装：(解压压缩包，进入bin目录将logstash.bat文件中添加双引号，创建logstash_test.conf配置文件(注意该文件必须是utf-8无bom形式存储,否则无法正常启动)，然后使用logstash -f 文件名.conf 运行) 
+
+ElasticSearch在windows下的安装：(解压压缩包，进入bin目录运行elasticsearch.bat，在浏览器中输入http://localhost:9200/?pretty访问，如果返回对应的json数据则安装成功)
+
+
+ 
+获取集群的节点列表：http://localhost:9200/_cat/nodes?v
+
+列出所有索引：localhost:9200/_cat/indices?v
+
+rest方式列出所有type：http://localhost:9200/_mapping?pretty=true
+
+非格式化方式列出所有的type：http://localhost:9200/_mapping
+
+查看集群的健康度：http://localhost:9200/_cluster/health?pretty
+
+查看分片：http://localhost:9200/_cat/shards
+
+kibana在windows下的安装：(版本必须与elasticsearch一致，解压进入config目录下的kibana.yml文件，修改链接es的地址，然后进入bin目录启动kibana.bat,访问路径http://localhost:5601)
+      
+ElasticSearch对数据的操作：(关系型数据库需要先建库，再建表。elasticsearch不需要，在你新增的时候会根据你指定的index,type,document,field自动创建。不过先创建索引也是可以的。客户端可以使用kibana )
+
+   1.新增doucument
+      put index(索引名)/文档类型(type)/文档id(id)
+      如:put news/new/5
+        {
+           "title":"title test",
+           "content":"content test"
+         }
+      结果：
+         {   
+            "_index":"news",
+            "_type":"new",
+            "_id":"5",
+            "_version":1,
+            "result":"created",
+            "_shards":{
+                "total":2,
+                "successful":2,
+                "failed":0
+            }, 
+            "created":true,
+           }
+       结果中的_version，是elasticsearch里面用来控制版本冲突的，如果修改或者删除，_version的值都会+1。
+
+   2.修改document(分为全量修改(PUT)和部分修改(POST))    
+        全量修改：
+        put news/new/5
+        {
+            "title":"title testupdate"
+         }
+        使用查询命令查看结果(get news/new/5)：
+        {
+           "_index": "news",
+           "_type": "new",
+           "_id": "5",
+           "_version": 2,
+           "found": true,
+           "_source": {
+               "title": "title testupdate"
+           }
+         }
+        从返回结果可以看出全量修改等同于删除之后再新建
+
+        部分修改：
+        POST /news/new/5/_update
+        {
+             "doc":{
+             "title":"abcdef"
+             }
+         }
+        查询结果：
+        {
+          "_index": "news",
+          "_type": "new",
+          "_id": "5",
+          "_version": 2,
+          "found": true,
+          "_source": {
+              "title": "abcdefg",
+              "content": "content test"
+           }
+         }
+
+     3.查询document
+       GET /news/new/5
+       根据条件进行查询:(如:查询id值为3,5,7的)
+         {"query":{
+          "terms":
+           {"_id":["3","5","7"]}
+           }
+         }
+
+     4.删除document
+       Delete /news/new/5
+       执行结果：
+        {
+          "found": true,
+          "_index": "news",
+          "_type": "new",
+          "_id": "5",
+          "_version": 3,
+          "result": "deleted",
+          "_shards": {
+          "total": 2,
+          "successful": 2,
+          "failed": 0
+          }
+         }
+
+使用JAVA操作ElasticSearch库
+(ES数据类型：String在5.0之后(text(全文搜索)、keyword(关键字搜索)代替)、long(64位存储)、integer(32位存储)、short(16位存储)、byte(8位存储)、double(64位双精度存储)、float(32位单精度存储)、boolean、
+data(日期)、range(范围)、binary(二进制)、array(数组)、object(对象)、nested(嵌套)、地理类型(地理坐标、地理地图)、特殊类型(ip、范围、附件类型等))
+
+一.创建Index(向es库写入)
+
+TransportClient client=new PreBuiltTransportClient(Settings.builder.put("cluster.name",string).put("client.transport.sniff",true).put("client.transport.ping_timeout","60s").build());
+
+String[] ipArray=ips.split(",");
+for(String ip:ipArray){
+    String[] ipPort=ip.split(":");
+    
+}
+
+Builder build=Settings.builder().put().put();
+
+XContentBuilder mapping=XContentFactory.jsonBuilder().startObject().field("index","true").field("type","integer")
+
+二.从ES库中读取数据
+
+String content=File
+
+
+
+

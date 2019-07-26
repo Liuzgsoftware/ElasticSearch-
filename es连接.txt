@@ -1,0 +1,102 @@
+Elasticsearch--QueryBuilder简单查询
+
+1.matchAllQuery()方法用来匹配全部文档
+
+public class QueryTest {  
+    public static void main(String[] args) {  
+        //创建对象，设置集群名称和IP地址  
+        ElasticsearchUtils es = new ElasticsearchUtils("im_shan",  
+                "localhost");  
+        String indexName = "school";//索引名称  
+        String typeName = "student";//类型名称  
+        //搜索全部文档  
+        QueryBuilder queryBuilder = QueryBuilders.matchAllQuery();  
+        SearchResponse searchResponse = es.searcher(indexName, typeName,  
+            queryBuilder);  
+        SearchHits hits = searchResponse.getHits();  
+        SearchHit[] searchHits = hits.getHits();  
+        int i = 0;  
+        for (SearchHit searchHit : searchHits) {  
+            String name = (String) searchHit.getSource().get("name");  
+            String birth = (String) searchHit.getSource().get("birth");  
+            String interest = (String) searchHit.getSource().get("interest");  
+            System.out.println("-------------" + (++i) + "------------");  
+            System.out.println(name);  
+            System.out.println(birth);  
+            System.out.println(interest);  
+        }  
+  
+    }  
+}
+
+2.matchQuery(String name,Object text)匹配单个字段，匹配字段名为filedname,值为value的文档
+  //单个匹配，搜索name为jack的文档
+  QueryBuilder queryBuilder = QueryBuilders.matchAllQuery("name","jack");  
+    
+3.multiMatchQuery(Object text, String... fieldNames)多个字段匹配某一个值
+  //搜索name中或interest中包含有music的文档（必须与music一致）
+  QueryBuilder queryBuilder = QueryBuilders.multiMatchQuery("music", "name", "interest");
+
+4.wildcardQuery()模糊查询 模糊查询，?匹配单个字符，*匹配多个字符
+  //搜索名字中含有jack文档（name中只要包含jack即可）
+  WildcardQueryBuilder queryBuilder = QueryBuilders.wildcardQuery("name", "*jack*");
+
+5.使用BoolQueryBuilder进行复合查询
+ 
+  （1）使用must
+           //模糊查询  
+           WildcardQueryBuilder queryBuilder1 = QueryBuilders.wildcardQuery("name", "*jack*");//搜索名字中含有jack的文档  
+           WildcardQueryBuilder queryBuilder2 = QueryBuilders.wildcardQuery("interest", "*read*");//搜索interest中含有read的文档  
+  
+           BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();  
+           //name中必须含有jack,interest中必须含有read,相当于and  
+           boolQueryBuilder.must(queryBuilder1);  
+           boolQueryBuilder.must(queryBuilder2);
+
+   (2) 使用mustNot
+           WildcardQueryBuilder queryBuilder1 = QueryBuilders.wildcardQuery("name", "*jack*");//搜索名字中含有jack的文档  
+   
+           BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();  
+           //name中不包含有jack，相当于非 !=  
+           boolQueryBuilder.should(queryBuilder1);  
+
+  
+  （3）使用should
+           WildcardQueryBuilder queryBuilder1 = QueryBuilders.wildcardQuery("name", "*jack*");//搜索名字中含有jack的文档  
+           WildcardQueryBuilder queryBuilder2 = QueryBuilders.wildcardQuery("interest", "*read*");//搜索interest中含有read的文档  
+   
+           BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();  
+           //name中含有jack或者interest含有read，相当于or  
+           boolQueryBuilder.should(queryBuilder1);  
+           boolQueryBuilder.should(queryBuilder2);
+
+  （4）使用filter
+           RangeQueryBuilder queryBuilder=QueryBuilders.rangeQuery("end_tv_sec").from(startTime).to(endTime));//范围查询，范围在开始时间到结束时间
+
+6.分页(通过from和size参数进行分页。From定义查询结果开始位置，size定义返回的hits（一条hit对应一条记录）最大数量)
+      SearchResponse response=client.prepareSearch("dept")
+               .setTypes("employee")
+               .setQuery(queryBuilder)
+               .setFrom(0).setSize(2)
+               .execute()
+               .actionGet();
+  
+
+遍历for(SearchHit sh:response){
+      Map<?,?> source=sh.getSourceAsMap();
+      String field1=source.get("key1").toString(); key1 -- es字段
+.....
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
